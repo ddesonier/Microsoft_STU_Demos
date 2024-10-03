@@ -1,4 +1,4 @@
-# DocIntel GPT-4o AirGapDemo
+# DocIntel GPT-4o AirgapDemo
 
 This project demonstrates the use of Azure OpenAI to extract and process invoice data from images. It includes functionalities to encode images to base64, and extract invoice data using the GPT-4o model deployed on Azure OpenAI.
 
@@ -13,8 +13,8 @@ This project demonstrates the use of Azure OpenAI to extract and process invoice
 
 1. **Clone the repository**:
     ```sh
-    git clone https://github.com/your-repo/DocIntel_GPT-4o_USNatDemo.git
-    cd DocIntel_GPT-4o_USNatDemo
+    git clone https://github.com/your-repo/DocIntel_GPT-4o_AirgapDemo.git
+    cd DocIntel_GPT-4o_AirgapDemo
     ```
 
 2. **Create a virtual environment**:
@@ -49,7 +49,7 @@ pip install openai==1.45.1 # or higher
 
 
 ```markdown
-# DocIntel GPT-4o USNatDemo
+# DocIntel GPT-4o AirgapDemo
 
 This project demonstrates the use of Azure OpenAI and CosmosDB to extract and process invoice data from images. It includes functionalities to encode images to base64, delete files in a directory, and extract invoice data using the GPT-4o model deployed on Azure OpenAI.
 
@@ -64,8 +64,8 @@ This project demonstrates the use of Azure OpenAI and CosmosDB to extract and pr
 
 1. **Clone the repository**:
     ```sh
-    git clone https://github.com/your-repo/DocIntel_GPT-4o_USNatDemo.git
-    cd DocIntel_GPT-4o_USNatDemo
+    git clone https://github.com/your-repo/DocIntel_GPT-4o_AirgapDemo.git
+    cd DocIntel_GPT-4o_AirgapDemo
     ```
 
 2. **Create a virtual environment**:

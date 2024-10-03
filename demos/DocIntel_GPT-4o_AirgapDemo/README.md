@@ -1,4 +1,4 @@
-# DocIntel GPT-4o USNatDemo
+# DocIntel GPT-4o AirGapDemo
 
 This project demonstrates the use of Azure OpenAI to extract and process invoice data from images. It includes functionalities to encode images to base64, and extract invoice data using the GPT-4o model deployed on Azure OpenAI.
 

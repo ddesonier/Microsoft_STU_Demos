@@ -1,0 +1,76 @@
+{
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "Invoice Information": {
+                "type": "object",
+                "properties": {
+                    "Date": {
+                        "type": "string"
+                    },
+                    "Invoice Number": {
+                        "type": "string"
+                    }
+                }
+            },
+            "Billing Information": {
+                "type": "object",
+                "properties": {
+                    "Company": {
+                        "type": "string"
+                    },
+                    "Name": {
+                        "type": "string"
+                    },
+                    "Address": {
+                        "type": "string"
+                    },
+                    "Phone Number": {
+                        "type": "string"
+                    },
+                    "Email": {
+                        "type": "string"
+                    }
+                }
+            },
+            "Shipping Information": {
+                "type": "object",
+                "properties": {
+                    "Name": {
+                        "type": "string"
+                    },
+                    "Address": {
+                        "type": "string"
+                    }
+                }
+            },
+            "Items": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "Product/Service": {
+                            "type": "string"
+                        },
+                        "Description": {
+                            "type": "string"
+                        },
+                        "Quantity": {
+                            "type": "integer"
+                        },
+                        "Unit Price": {
+                            "type": "integer"
+                        },
+                        "Total": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "Total": {
+                "type": "string"
+            }
+        }
+    }
+}

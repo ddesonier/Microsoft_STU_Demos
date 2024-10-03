@@ -90,14 +90,12 @@ This project demonstrates the use of Azure OpenAI and CosmosDB to extract and pr
 
 ### Python Package Requirements
 
-- openai==0.27.0
-- azure-cosmos==4.2.0
+- openai==1.45.1 or Higher
 
 ### Commands to Install Packages
 
 ```sh
-pip install openai==0.27.0
-pip install azure-cosmos==4.2.0
+pip install openai==1.45.1
 ```
 
 ### Environment Variables

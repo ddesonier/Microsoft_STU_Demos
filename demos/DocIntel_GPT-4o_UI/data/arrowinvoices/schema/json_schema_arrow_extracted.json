@@ -1,0 +1,172 @@
+{
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "Purchase Order": {
+                "type": "object",
+                "properties": {
+                    "Number": {
+                        "type": "string"
+                    },
+                    "Date": {
+                        "type": "string"
+                    },
+                    "Revision": {
+                        "type": "string"
+                    },
+                    "Payment Terms": {
+                        "type": "string"
+                    },
+                    "Freight Terms": {
+                        "type": "string"
+                    },
+                    "Ship Via": {
+                        "type": "string"
+                    },
+                    "Currency": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "Number",
+                    "Date",
+                    "Revision",
+                    "Payment Terms",
+                    "Freight Terms",
+                    "Ship Via",
+                    "Currency"
+                ]
+            },
+            "Supplier": {
+                "type": "object",
+                "properties": {
+                    "ID": {
+                        "type": "string"
+                    },
+                    "Name": {
+                        "type": "string"
+                    },
+                    "Address": {
+                        "type": "string"
+                    },
+                    "Phone/Email": {
+                        "type": "string"
+                    },
+                    "Fax": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "ID",
+                    "Name",
+                    "Address",
+                    "Phone/Email",
+                    "Fax"
+                ]
+            },
+            "Ship To": {
+                "type": "string"
+            },
+            "Attention": {
+                "type": "string"
+            },
+            "Bill To": {
+                "type": "string"
+            },
+            "Tax Exempt?": {
+                "type": "string"
+            },
+            "Tax Exempt ID": {
+                "type": "string"
+            },
+            "Replenishment Option": {
+                "type": "string"
+            },
+            "Items": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "Line-Sch": {
+                            "type": "string"
+                        },
+                        "Item Description": {
+                            "type": "string"
+                        },
+                        "Quantity": {
+                            "type": "string"
+                        },
+                        "UOM": {
+                            "type": "string"
+                        },
+                        "PO Price": {
+                            "type": "string"
+                        },
+                        "Extended Amt": {
+                            "type": "string"
+                        },
+                        "Due Date": {
+                            "type": "string"
+                        },
+                        "Contract ID": {
+                            "type": "string"
+                        },
+                        "Schedule Total": {
+                            "type": "object",
+                            "properties": {
+                                "Contract Line": {
+                                    "type": "string"
+                                },
+                                "Category Line": {
+                                    "type": "string"
+                                },
+                                "Release": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "Contract Line",
+                                "Category Line",
+                                "Release"
+                            ]
+                        },
+                        "Included Items": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "Item Total": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "Line-Sch",
+                        "Item Description",
+                        "Quantity",
+                        "UOM",
+                        "PO Price",
+                        "Extended Amt",
+                        "Due Date",
+                        "Contract ID",
+                        "Schedule Total",
+                        "Included Items",
+                        "Item Total"
+                    ]
+                }
+            }
+        },
+        "required": [
+            "Purchase Order",
+            "Supplier",
+            "Ship To",
+            "Attention",
+            "Bill To",
+            "Tax Exempt?",
+            "Tax Exempt ID",
+            "Replenishment Option",
+            "Items"
+        ]
+    }
+}

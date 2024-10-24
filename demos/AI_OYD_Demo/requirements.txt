@@ -1,0 +1,4 @@
+openai
+streamlit
+azure.storage.blob
+azure.search.documents

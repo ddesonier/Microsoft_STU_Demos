@@ -34,15 +34,15 @@ This project demonstrates how to integrate Azure OpenAI and Azure Storage using 
 4. **Set up environment variables**:
    Create a `.env` file in the root directory of the project and add the following environment variables:
    ```env
-   AZURE_OPENAI_ENDPOINT=your_openai_endpoint
-   AZURE_OPENAI_CHATGPT_DEPLOYMENT=your_chatgpt_deployment
-   AZURE_AI_SEARCH_ENDPOINT=your_search_endpoint
-   AZURE_AI_SEARCH_KEY=your_search_key
-   AZURE_AI_SEARCH_INDEX=your_search_index
-   AZURE_OPENAI_KEY=your_openai_key
-   AZURE_CONNECTION_STRING=your_storage_connection_string
-   CONTAINER_NAME=your_container_name
-   AZURE_AI_SEARCH_INDEXER_NAME=your_indexer_name
+   AZURE_OPENAI_KEY =
+   AZURE_OPENAI_API_VERSION =
+   AZURE_OPENAI_CHATGPT_DEPLOYMENT =
+   AZURE_AI_SEARCH_ENDPOINT =
+   AZURE_AI_SEARCH_KEY =
+   AZURE_AI_SEARCH_INDEXER =
+   AZURE_CONNECTION_STRING = 
+   CONTAINER_NAME = 
+   AZURE_AI_SEARCH_INDEX =
    ```
 
 ## Usage

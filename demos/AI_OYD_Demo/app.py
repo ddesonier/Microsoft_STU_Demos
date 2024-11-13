@@ -5,10 +5,14 @@ from openai import AzureOpenAI
 from azure.search.documents import SearchClient
 from azure.search.documents.indexes import SearchIndexerClient
 from azure.core.credentials import AzureKeyCredential
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Azure Storage Account connection string
 AZURE_CONNECTION_STRING = os.getenv("AZURE_CONNECTION_STRING")
 CONTAINER_NAME = os.getenv("CONTAINER_NAME")
+
 
 # Initialize Azure Blob Service Client
 blob_service_client = BlobServiceClient.from_connection_string(AZURE_CONNECTION_STRING)
@@ -17,10 +21,12 @@ container_client = blob_service_client.get_container_client(CONTAINER_NAME)
 # Azure Search configuration
 search_endpoint = os.getenv("AZURE_AI_SEARCH_ENDPOINT")
 search_key = os.getenv("AZURE_AI_SEARCH_KEY")
+search_indexer = os.getenv("AZURE_AI_SEARCH_INDEXER")
 search_index = os.getenv("AZURE_AI_SEARCH_INDEX")
 
+print(search_endpoint, search_key, search_indexer)
 # Initialize Azure Search Client
-search_client = SearchClient(endpoint=search_endpoint, index_name=search_index, credential=AzureKeyCredential(search_key))
+search_client = SearchClient(endpoint=search_endpoint, index_name=search_indexer, credential=AzureKeyCredential(search_key))
 indexer_client = SearchIndexerClient(endpoint=search_endpoint, credential=AzureKeyCredential(search_key))
 
 # Set Streamlit page configuration

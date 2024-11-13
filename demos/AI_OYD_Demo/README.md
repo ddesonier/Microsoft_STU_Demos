@@ -29,6 +29,7 @@ This project demonstrates how to integrate Azure OpenAI and Azure Storage using 
 3. **Install the required libraries**:
    ```sh
    pip install -r requirements.txt
+   pip install --no-index --find-links /path/to/local/packages -r requirements.txt
    ```
 
 4. **Set up environment variables**:

@@ -66,7 +66,7 @@ with col1:
         # Button to trigger re-indexing
         if st.button("Re-index Data"):
             try:
-                indexer_client.run_indexer(search_index)
+                indexer_client.run_indexer(search_indexer)
                 st.success("Re-indexing triggered successfully!")
             except Exception as e:
                 st.error(f"Error triggering re-indexing: {e}")

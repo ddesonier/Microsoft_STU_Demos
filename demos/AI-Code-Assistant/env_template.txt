@@ -1,0 +1,15 @@
+# Azure OpenAI settings
+AZURE_OPENAI_ENDPOINT='https://<your-openai-endpoint>'
+AZURE_OPENAI_CHATGPT_DEPLOYMENT='<your-chatgpt-deployment-name>'
+AZURE_OPENAI_KEY='<your-openai-api-key>'
+AZURE_OPENAI_API_VERSION='2024-04-01-preview'
+
+# Azure Storage settings
+AZURE_STORAGE_ACCOUNT_NAME='<your-storage-account-name>'
+CONTAINER_NAME='<your-container-name>'
+
+# Azure AI Search settings
+AZURE_AI_SEARCH_ENDPOINT='https://<your-search-endpoint>'
+AZURE_AI_SEARCH_KEY='<your-search-api-key>'
+AZURE_AI_SEARCH_INDEX='<your-index-name>'
+AZURE_AI_SEARCH_INDEXER='<your-indexer-name>'

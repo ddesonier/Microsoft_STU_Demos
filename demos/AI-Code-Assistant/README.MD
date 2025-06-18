@@ -223,7 +223,7 @@ Create a `.env` file with the following variables:
 
 3. **Install dependencies:**
    ```
-   pip install -r requirements.txt
+   pip install --no-index --find-links=./packages -r requirements.txt
    ```
 
 4. **Create a `.env` file and add your Application Environment Variables.**

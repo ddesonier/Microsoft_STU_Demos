@@ -1,0 +1,563 @@
+{
+  "template": "collaboration",
+  "version": "1.0.0",
+  "updated": "2026-09-14",
+  "description": "Cross-tenant community collaboration: admin-gated B2B, per-partner cross-tenant trust, dynamic/static groups, access-package gate, and staged outbound cross-tenant synchronization.",
+  "graphScopes": {
+    "delegated": [
+      "Policy.ReadWrite.Authorization",
+      "Policy.Read.All",
+      "Policy.ReadWrite.CrossTenantAccess",
+      "Group.ReadWrite.All",
+      "EntitlementManagement.ReadWrite.All",
+      "Application.ReadWrite.All",
+      "Synchronization.ReadWrite.All",
+      "AuditLog.Read.All"
+    ],
+    "application": [
+      "Policy.ReadWrite.Authorization",
+      "Policy.Read.All",
+      "Policy.ReadWrite.CrossTenantAccess",
+      "Group.ReadWrite.All",
+      "EntitlementManagement.ReadWrite.All",
+      "Application.ReadWrite.All",
+      "Synchronization.ReadWrite.All",
+      "AuditLog.Read.All"
+    ]
+  },
+  "resources": [
+    {
+      "name": "Authorization policy (invites)",
+      "type": "authorizationPolicy",
+      "mode": "configure",
+      "configure": {
+        "method": "PATCH",
+        "uri": "{{graph-endpoint}}/v1.0/policies/authorizationPolicy",
+        "body": {
+          "allowInvitesFrom": "adminsAndGuestInviters",
+          "allowEmailVerifiedUsersToJoinOrganization": false
+        }
+      }
+    },
+    {
+      "name": "B2B invitation domain restrictions (precondition)",
+      "type": "b2bManagementPolicy",
+      "mode": "assert",
+      "exists": {
+        "method": "GET",
+        "uri": "{{graph-endpoint}}/beta/policies/b2bManagementPolicies",
+        "match": "value[?isOrganizationDefault]|[0]"
+      },
+      "assert": {
+        "when": "found",
+        "predicate": {
+          "path": "definition[0]",
+          "decode": "json",
+          "select": "B2BManagementPolicy.InvitationsAllowedAndBlockedDomainsPolicy.AllowedDomains",
+          "mustBe": "emptyOrAbsent"
+        },
+        "onFail": {
+          "action": "warn",
+          "message": "This tenant restricts B2B invitations to an allow-list ({{value}}), which may block community tenants. Review and remove the allow-list manually if community collaboration is blocked."
+        }
+      }
+    },
+    {
+      "name": "Cross-tenant access - partner: {{partner.displayName}}",
+      "type": "crossTenantAccessPolicyPartner",
+      "mode": "create",
+      "forEach": {
+        "source": "partners",
+        "var": "partner"
+      },
+      "exists": {
+        "method": "GET",
+        "uri": "{{graph-endpoint}}/v1.0/policies/crossTenantAccessPolicy/partners/{{partner.tenantId}}",
+        "okStatuses": [200],
+        "notFoundStatuses": [404]
+      },
+      "create": {
+        "method": "POST",
+        "uri": "{{graph-endpoint}}/v1.0/policies/crossTenantAccessPolicy/partners",
+        "body": {
+          "tenantId": "{{partner.tenantId}}"
+        }
+      },
+      "configure": {
+        "method": "PATCH",
+        "uri": "{{graph-endpoint}}/v1.0/policies/crossTenantAccessPolicy/partners/{{partner.tenantId}}",
+        "body": {
+          "inboundTrust": {
+            "isMfaAccepted": true,
+            "isCompliantDeviceAccepted": true,
+            "isHybridAzureADJoinedDeviceAccepted": true
+          },
+          "automaticUserConsentSettings": {
+            "inboundAllowed": true,
+            "outboundAllowed": true
+          },
+          "b2bCollaborationInbound": {
+            "usersAndGroups": {
+              "accessType": "allowed",
+              "targets": [{ "target": "AllUsers", "targetType": "user" }]
+            },
+            "applications": {
+              "accessType": "allowed",
+              "targets": [{ "target": "AllApplications", "targetType": "application" }]
+            }
+          },
+          "b2bCollaborationOutbound": {
+            "usersAndGroups": {
+              "accessType": "allowed",
+              "targets": [{ "target": "AllUsers", "targetType": "user" }]
+            },
+            "applications": {
+              "accessType": "allowed",
+              "targets": [{ "target": "AllApplications", "targetType": "application" }]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Cross-tenant access - default (block inbound except allow-list)",
+      "type": "crossTenantAccessPolicyDefault",
+      "mode": "configure",
+      "configure": {
+        "method": "PATCH",
+        "uri": "{{graph-endpoint}}/v1.0/policies/crossTenantAccessPolicy/default",
+        "body": {
+          "b2bCollaborationInbound": {
+            "usersAndGroups": {
+              "accessType": "blocked",
+              "targets": [{ "target": "AllUsers", "targetType": "user" }]
+            },
+            "applications": {
+              "accessType": "blocked",
+              "targets": [{ "target": "AllApplications", "targetType": "application" }]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Group - External Community Collaboration Members (dynamic)",
+      "type": "group",
+      "mode": "create",
+      "exists": {
+        "method": "GET",
+        "uri": "{{graph-endpoint}}/v1.0/groups?$filter=displayName eq 'External Community Members'",
+        "match": "value[0]"
+      },
+      "create": {
+        "method": "POST",
+        "uri": "{{graph-endpoint}}/v1.0/groups",
+        "body": {
+          "displayName": "External Community Members",
+          "description": "TCG - All users synced into this tenant via community cross-tenant sync",
+          "mailEnabled": false,
+          "mailNickname": "ExtCommunityMembers",
+          "securityEnabled": true,
+          "groupTypes": ["DynamicMembership"],
+          "membershipRule": "(user.userType -eq \"Member\") and (user.userPrincipalName -contains \"#EXT#\")",
+          "membershipRuleProcessingState": "On"
+        }
+      }
+    },
+    {
+      "name": "Group - External Users All (dynamic)",
+      "type": "group",
+      "mode": "create",
+      "exists": {
+        "method": "GET",
+        "uri": "{{graph-endpoint}}/v1.0/groups?$filter=displayName eq 'External Users All'",
+        "match": "value[0]"
+      },
+      "create": {
+        "method": "POST",
+        "uri": "{{graph-endpoint}}/v1.0/groups",
+        "body": {
+          "displayName": "External Users All",
+          "description": "TCG - All external users",
+          "mailEnabled": false,
+          "mailNickname": "ExternalUsersAll",
+          "securityEnabled": true,
+          "groupTypes": ["DynamicMembership"],
+          "membershipRule": "(user.userPrincipalName -contains \"#EXT#\")",
+          "membershipRuleProcessingState": "On"
+        }
+      }
+    },
+    {
+      "name": "Group - External Community Guests (dynamic)",
+      "type": "group",
+      "mode": "create",
+      "exists": {
+        "method": "GET",
+        "uri": "{{graph-endpoint}}/v1.0/groups?$filter=displayName eq 'External Community Guests'",
+        "match": "value[0]"
+      },
+      "create": {
+        "method": "POST",
+        "uri": "{{graph-endpoint}}/v1.0/groups",
+        "body": {
+          "displayName": "External Community Guests",
+          "description": "TCG - All guest users invited to collaborate with B2B (excludes synced members)",
+          "mailEnabled": false,
+          "mailNickname": "ExtCommunityGuests",
+          "securityEnabled": true,
+          "groupTypes": ["DynamicMembership"],
+          "membershipRule": "(user.userType -eq \"Guest\") and (user.userPrincipalName -contains \"#EXT#\")",
+          "membershipRuleProcessingState": "On"
+        }
+      }
+    },
+    {
+      "name": "Group - Internal Members Only (dynamic)",
+      "type": "group",
+      "mode": "create",
+      "exists": {
+        "method": "GET",
+        "uri": "{{graph-endpoint}}/v1.0/groups?$filter=displayName eq 'Organization Internal Only'",
+        "match": "value[0]"
+      },
+      "create": {
+        "method": "POST",
+        "uri": "{{graph-endpoint}}/v1.0/groups",
+        "body": {
+          "displayName": "Organization Internal Only",
+          "description": "TCG - All internal tenant members (excludes external B2B users)",
+          "mailEnabled": false,
+          "mailNickname": "OrgInternalMembers",
+          "securityEnabled": true,
+          "groupTypes": ["DynamicMembership"],
+          "membershipRule": "(user.userType -eq \"Member\") and (user.userPrincipalName -notcontains \"#EXT#\")",
+          "membershipRuleProcessingState": "On"
+        }
+      }
+    },
+    {
+      "name": "Group - External Community NOFORN (dynamic)",
+      "type": "group",
+      "mode": "create",
+      "exists": {
+        "method": "GET",
+        "uri": "{{graph-endpoint}}/v1.0/groups?$filter=displayName eq 'NOFORN - External Community'",
+        "match": "value[0]"
+      },
+      "create": {
+        "method": "POST",
+        "uri": "{{graph-endpoint}}/v1.0/groups",
+        "body": {
+          "displayName": "NOFORN - External Community",
+          "description": "TCG - All external users with country equals United States",
+          "mailEnabled": false,
+          "mailNickname": "NoFornExternal",
+          "securityEnabled": true,
+          "groupTypes": ["DynamicMembership"],
+          "membershipRule": "(user.country -eq \"United States\") and (user.userPrincipalName -contains \"#EXT#\")",
+          "membershipRuleProcessingState": "On"
+        }
+      }
+    },
+    {
+      "name": "Group - NOFORN Internal (dynamic)",
+      "type": "group",
+      "captureAs": "noforInternal",
+      "mode": "create",
+      "exists": {
+        "method": "GET",
+        "uri": "{{graph-endpoint}}/v1.0/groups?$filter=displayName eq 'NOFORN - Internal'",
+        "match": "value[0]"
+      },
+      "create": {
+        "method": "POST",
+        "uri": "{{graph-endpoint}}/v1.0/groups",
+        "body": {
+          "displayName": "NOFORN - Internal",
+          "description": "TCG - All internal members with country equals United States",
+          "mailEnabled": false,
+          "mailNickname": "NoFornInternal",
+          "securityEnabled": true,
+          "groupTypes": ["DynamicMembership"],
+          "membershipRule": "(user.country -eq \"United States\") and (user.userPrincipalName -notcontains \"#EXT#\") and (user.userType -eq \"Member\")",
+          "membershipRuleProcessingState": "On"
+        }
+      }
+    },
+    {
+      "name": "Group - NOFORN ALL (dynamic)",
+      "type": "group",
+      "mode": "create",
+      "exists": {
+        "method": "GET",
+        "uri": "{{graph-endpoint}}/v1.0/groups?$filter=displayName eq 'NOFORN - All Community'",
+        "match": "value[0]"
+      },
+      "create": {
+        "method": "POST",
+        "uri": "{{graph-endpoint}}/v1.0/groups",
+        "body": {
+          "displayName": "NOFORN - All Community",
+          "description": "TCG - All internal and external users with country equals United States",
+          "mailEnabled": false,
+          "mailNickname": "NoFornAll",
+          "securityEnabled": true,
+          "groupTypes": ["DynamicMembership"],
+          "membershipRule": "(user.country -eq \"United States\")",
+          "membershipRuleProcessingState": "On"
+        }
+      }
+    },
+    {
+      "name": "Group - Community Collaboration - All",
+      "type": "group",
+      "captureAs": "group",
+      "mode": "create",
+      "exists": {
+        "method": "GET",
+        "uri": "{{graph-endpoint}}/v1.0/groups?$filter=displayName eq 'Community Collab Sync - All'",
+        "match": "value[0]"
+      },
+      "create": {
+        "method": "POST",
+        "uri": "{{graph-endpoint}}/v1.0/groups",
+        "body": {
+          "displayName": "Community Collab Sync - All",
+          "description": "TCG - Members are provisioned out to community partner tenants (access-package gated)",
+          "mailEnabled": false,
+          "mailNickname": "CommCollabSyncAll",
+          "securityEnabled": true,
+          "groupTypes": []
+        }
+      }
+    },
+    {
+      "name": "Catalog - Community Collaboration",
+      "type": "accessPackageCatalog",
+      "captureAs": "catalog",
+      "mode": "create",
+      "exists": {
+        "method": "GET",
+        "uri": "{{graph-endpoint}}/v1.0/identityGovernance/entitlementManagement/catalogs?$filter=displayName eq 'Community Collaboration'",
+        "match": "value[0]"
+      },
+      "create": {
+        "method": "POST",
+        "uri": "{{graph-endpoint}}/v1.0/identityGovernance/entitlementManagement/catalogs",
+        "body": {
+          "displayName": "Community Collaboration",
+          "description": "TCG - Access packages that gate outbound community collaboration",
+          "isExternallyVisible": false,
+          "state": "published"
+        }
+      }
+    },
+    {
+      "name": "Catalog resource - add All group",
+      "type": "accessPackageResourceRequest",
+      "mode": "create",
+      "dependsOn": ["Group - Community Collaboration - All", "Catalog - Community Collaboration"],
+      "exists": {
+        "method": "GET",
+        "uri": "{{graph-endpoint}}/v1.0/identityGovernance/entitlementManagement/catalogs/{{catalog.id}}/resources?$filter=originId eq '{{group.id}}'",
+        "match": "value[0]"
+      },
+      "create": {
+        "method": "POST",
+        "uri": "{{graph-endpoint}}/v1.0/identityGovernance/entitlementManagement/resourceRequests",
+        "retryCount": 6,
+        "retryDelaySeconds": 15,
+        "body": {
+          "requestType": "adminAdd",
+          "resource": { "originId": "{{group.id}}", "originSystem": "AadGroup" },
+          "catalog": { "id": "{{catalog.id}}" }
+        }
+      }
+    },
+    {
+      "name": "Access package - Community Collaboration - All",
+      "type": "accessPackage",
+      "captureAs": "accessPackage",
+      "mode": "create",
+      "dependsOn": ["Catalog - Community Collaboration"],
+      "exists": {
+        "method": "GET",
+        "uri": "{{graph-endpoint}}/v1.0/identityGovernance/entitlementManagement/accessPackages?$filter=displayName eq 'Community Collaboration - All'",
+        "match": "value[0]"
+      },
+      "create": {
+        "method": "POST",
+        "uri": "{{graph-endpoint}}/v1.0/identityGovernance/entitlementManagement/accessPackages",
+        "body": {
+          "displayName": "Community Collaboration - All",
+          "description": "TCG - Request to be provisioned out to other community environments",
+          "isHidden": false,
+          "catalog": { "id": "{{catalog.id}}" }
+        }
+      },
+      "roleScope": {
+        "lookup": {
+          "method": "GET",
+          "uri": "{{graph-endpoint}}/v1.0/identityGovernance/entitlementManagement/catalogs/{{catalog.id}}/resources?$filter=originId eq '{{group.id}}'&$expand=roles,scopes",
+          "waitUntil": "value[0]",
+          "capture": { "resourceId": "value[0].id" }
+        },
+        "method": "POST",
+        "uri": "{{graph-endpoint}}/v1.0/identityGovernance/entitlementManagement/accessPackages/{{accessPackage.id}}/resourceRoleScopes",
+        "body": {
+          "role": {
+            "displayName": "Member",
+            "originSystem": "AadGroup",
+            "originId": "Member_{{group.id}}",
+            "resource": { "id": "{{roleScope.lookup.resourceId}}" }
+          },
+          "scope": { "originId": "{{group.id}}", "originSystem": "AadGroup", "isRootScope": true }
+        }
+      }
+    },
+    {
+      "name": "Policy - Community Collaboration - All (no approval)",
+      "type": "accessPackageAssignmentPolicy",
+      "mode": "create",
+      "dependsOn": ["Access package - Community Collaboration - All", "Group - NOFORN Internal (dynamic)"],
+      "exists": {
+        "method": "GET",
+        "uri": "{{graph-endpoint}}/v1.0/identityGovernance/entitlementManagement/assignmentPolicies?$filter=displayName eq 'Request - Community Collaboration - All'",
+        "match": "value[0]"
+      },
+      "create": {
+        "method": "POST",
+        "uri": "{{graph-endpoint}}/v1.0/identityGovernance/entitlementManagement/assignmentPolicies",
+        "body": {
+          "displayName": "Request - Community Collaboration - All",
+          "description": "TCG - NOFORN internal members self-request; no approval",
+          "allowedTargetScope": "specificDirectoryUsers",
+          "specificAllowedTargets": [
+            {
+              "@odata.type": "#microsoft.graph.groupMembers",
+              "groupId": "{{noforInternal.id}}"
+            }
+          ],
+          "accessPackage": { "id": "{{accessPackage.id}}" },
+          "requestorSettings": { "enableTargetsToSelfAddAccess": true },
+          "requestApprovalSettings": { "isApprovalRequiredForAdd": false }
+        }
+      }
+    },
+    {
+      "name": "Sync inbound-allow - {{partner.displayName}}",
+      "type": "crossTenantIdentitySyncPolicyPartner",
+      "mode": "configure",
+      "forEach": {
+        "source": "partners",
+        "var": "partner"
+      },
+      "dependsOn": ["Cross-tenant access - partner: {{partner.displayName}}"],
+      "configure": {
+        "method": "PUT",
+        "skipOnConflict": true,
+        "uri": "{{graph-endpoint}}/v1.0/policies/crossTenantAccessPolicy/partners/{{partner.tenantId}}/identitySynchronization",
+        "body": {
+          "displayName": "{{partner.displayName}}",
+          "userSyncInbound": { "isSyncAllowed": true }
+        }
+      }
+    },
+    {
+      "name": "Sync app - {{partner.displayName}}",
+      "type": "crossTenantSyncApp",
+      "mode": "create",
+      "forEach": {
+        "source": "partners",
+        "var": "partner"
+      },
+      "exists": {
+        "method": "GET",
+        "uri": "{{graph-endpoint}}/v1.0/servicePrincipals?$filter=displayName eq 'CTS - {{partner.displayName}}'",
+        "match": "value[0]",
+        "capture": { "spId": "value[0].id", "appRoleId": "value[0].appRoles[?displayName=='msiam_access']|[0].id" }
+      },
+      "create": {
+        "method": "POST",
+        "uri": "{{graph-endpoint}}/v1.0/applicationTemplates/518e5f48-1fc8-4c48-9387-9fdf28b0dfe7/instantiate",
+        "guard": {
+          "uri": "{{graph-endpoint}}/v1.0/servicePrincipals?$filter=applicationTemplateId eq '518e5f48-1fc8-4c48-9387-9fdf28b0dfe7'",
+          "match": "value[0]",
+          "message": "Existing cross-tenant sync app(s) found in this tenant. Skipping create for '{{partner.displayName}}' to avoid duplicating or altering an existing configuration. If one of these apps provisions to {{partner.displayName}} ({{partner.tenantId}}), rename it to 'CTS - {{partner.displayName}}' and re-run so this script can manage its group scoping; otherwise configure it manually."
+        },
+        "body": { "displayName": "CTS - {{partner.displayName}}" },
+        "capture": { "spId": "servicePrincipal.id", "appRoleId": "servicePrincipal.appRoles[?displayName=='msiam_access']|[0].id" }
+      }
+    },
+    {
+      "name": "Sync job - {{partner.displayName}}",
+      "type": "synchronizationJob",
+      "mode": "create",
+      "requires": ["spId"],
+      "forEach": {
+        "source": "partners",
+        "var": "partner"
+      },
+      "dependsOn": ["Sync app - {{partner.displayName}}"],
+      "exists": {
+        "method": "GET",
+        "uri": "{{graph-endpoint}}/v1.0/servicePrincipals/{{spId}}/synchronization/jobs",
+        "match": "value[0]",
+        "capture": { "jobId": "value[0].id" }
+      },
+      "create": {
+        "method": "POST",
+        "uri": "{{graph-endpoint}}/v1.0/servicePrincipals/{{spId}}/synchronization/jobs",
+        "body": { "templateId": "Azure2Azure" },
+        "capture": { "jobId": "id" }
+      }
+    },
+    {
+      "name": "Sync secrets - {{partner.displayName}}",
+      "type": "synchronizationSecrets",
+      "mode": "configure",
+      "requires": ["spId"],
+      "forEach": {
+        "source": "partners",
+        "var": "partner"
+      },
+      "dependsOn": ["Sync app - {{partner.displayName}}"],
+      "configure": {
+        "method": "PUT",
+        "uri": "{{graph-endpoint}}/v1.0/servicePrincipals/{{spId}}/synchronization/secrets",
+        "body": {
+          "value": [
+            { "key": "CompanyId", "value": "{{partner.tenantId}}" },
+            { "key": "AuthenticationType", "value": "SyncPolicy" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Sync scope - {{partner.displayName}}",
+      "type": "appRoleAssignment",
+      "mode": "create",
+      "requires": ["spId"],
+      "forEach": {
+        "source": "partners",
+        "var": "partner"
+      },
+      "dependsOn": ["Sync app - {{partner.displayName}}", "Group - Community Collaboration - All"],
+      "exists": {
+        "method": "GET",
+        "uri": "{{graph-endpoint}}/v1.0/servicePrincipals/{{spId}}/appRoleAssignedTo",
+        "match": "value[?principalId=='{{group.id}}']|[0]"
+      },
+      "create": {
+        "method": "POST",
+        "uri": "{{graph-endpoint}}/v1.0/servicePrincipals/{{spId}}/appRoleAssignedTo",
+        "body": {
+          "principalId": "{{group.id}}",
+          "resourceId": "{{spId}}",
+          "appRoleId": "{{appRoleId}}"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+{% block title %}Admin — MS Docs Search{% endblock %}
+{% block content %}
+    <p class="text-body-secondary small mb-3">
+      Paste one or more Microsoft Learn URLs below to re-crawl and update them in
+      the index <code>{{ index_name }}</code>. Only
+      <code>{{ content_source_origin }}/...</code> URLs are accepted. Content is
+      re-embedded only if it actually changed — this always updates (upserts)
+      the existing index in place, it never rebuilds it.
+    </p>
+
+    {% if form_error %}
+      <div class="alert alert-danger" role="alert">{{ form_error }}</div>
+    {% endif %}
+
+    {% if job %}
+      {% if job.status in ["queued", "running"] %}
+        <div class="alert alert-info" role="status">
+          <strong>{{ job.progress.phase|capitalize }}</strong> is running in the background.
+          {% if job.progress.total %}
+            {{ job.progress.processed }} of {{ job.progress.total }} processed.
+          {% endif %}
+          This page refreshes automatically.
+        </div>
+        <script>
+          window.setTimeout(() => window.location.reload(), 3000);
+        </script>
+      {% elif job.status == "completed" %}
+        <div class="alert alert-success" role="status">
+          Indexing completed.
+          {% if job.summary and job.summary.crawl is defined %}
+            Discovered {{ "{:,}".format(job.summary.crawl.discovered) }} pages;
+            crawled {{ "{:,}".format(job.summary.crawl.crawled) }},
+            skipped {{ "{:,}".format(job.summary.crawl.skipped) }} existing,
+            and uploaded {{ "{:,}".format(job.summary.index.uploaded) }} changed chunks.
+          {% elif job.summary and job.summary.index is defined %}
+            Processed {{ "{:,}".format(job.summary.index.pages) }} stored pages;
+            uploaded {{ "{:,}".format(job.summary.index.uploaded) }} changed chunks,
+            skipped {{ "{:,}".format(job.summary.index.skipped) }} unchanged chunks,
+            and removed {{ "{:,}".format(job.summary.index.stale_deleted) }} stale chunks.
+          {% else %}
+            {{ job.results|length }} page results.
+          {% endif %}
+        </div>
+      {% else %}
+        <div class="alert alert-danger" role="alert">
+          Indexing failed: {{ job.error }}
+        </div>
+      {% endif %}
+    {% endif %}
+
+    <form method="post" action="/admin" class="mb-4">
+      <input type="hidden" name="crawl_mode" value="urls">
+      <div class="mb-2">
+        <textarea
+          name="urls"
+          class="form-control font-monospace"
+          rows="6"
+          placeholder="{{ content_source_origin }}/en-us/azure/...&#10;{{ content_source_origin }}/en-us/azure/..."
+          autofocus
+        >{{ submitted_urls }}</textarea>
+      </div>
+      <div class="form-check mb-2">
+        <input
+          class="form-check-input"
+          type="checkbox"
+          id="recursive"
+          name="recursive"
+          {% if recursive %}checked{% endif %}
+        >
+        <label class="form-check-label" for="recursive">
+          Recursively index linked child pages
+        </label>
+      </div>
+      <div class="row align-items-center mb-3">
+        <label for="recursive-limit" class="col-auto col-form-label">Maximum pages</label>
+        <div class="col-auto">
+          <input
+            class="form-control"
+            type="number"
+            id="recursive-limit"
+            name="recursive_limit"
+            min="1"
+            max="{{ max_recursive_limit }}"
+            value="{{ recursive_limit }}"
+          >
+        </div>
+        <div class="col text-body-secondary small">
+          Child pages must remain beneath each submitted URL path.
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary">Start index update</button>
+    </form>
+
+    <hr class="my-4">
+    <h2 class="h5">Build chunked index from stored pages</h2>
+    <p class="text-body-secondary small">
+      Rebuild or incrementally update the section-chunked Search index from pages
+      already persisted in Blob Storage. This does not download Microsoft Learn
+      pages again.
+    </p>
+    <form method="post" action="/admin" class="mb-4">
+      <input type="hidden" name="crawl_mode" value="stored">
+      <button type="submit" class="btn btn-outline-primary">
+        Index stored pages as chunks
+      </button>
+    </form>
+
+    <hr class="my-4">
+    <h2 class="h5">Bulk sitemap crawl</h2>
+    <p class="text-body-secondary small">
+      Use Microsoft Learn's sitemap index for high-volume discovery, concurrent
+      crawling, resumable Blob storage, and batched embedding/index uploads.
+    </p>
+    <form method="post" action="/admin" class="mb-4">
+      <input type="hidden" name="crawl_mode" value="sitemap">
+      <div class="mb-3">
+        <label for="sitemap-index" class="form-label">Sitemap index</label>
+        <input
+          id="sitemap-index"
+          name="sitemap_index"
+          type="url"
+          class="form-control font-monospace"
+          value="{{ sitemap_index }}"
+          required
+        >
+      </div>
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <label for="sitemap-filter" class="form-label">Child sitemap filter</label>
+          <input
+            id="sitemap-filter"
+            name="sitemap_filter"
+            class="form-control font-monospace"
+            value="{{ sitemap_filter }}"
+            placeholder="azure_en-us"
+            required
+          >
+        </div>
+        <div class="col-md-3">
+          <label for="sitemap-limit" class="form-label">Maximum pages</label>
+          <input
+            id="sitemap-limit"
+            name="sitemap_limit"
+            type="number"
+            min="1"
+            max="{{ max_sitemap_limit }}"
+            class="form-control"
+            value="{{ sitemap_limit }}"
+            required
+          >
+        </div>
+        <div class="col-md-3">
+          <label for="sitemap-concurrency" class="form-label">Concurrency</label>
+          <input
+            id="sitemap-concurrency"
+            name="sitemap_concurrency"
+            type="number"
+            min="1"
+            max="{{ max_sitemap_concurrency }}"
+            class="form-control"
+            value="{{ sitemap_concurrency }}"
+            required
+          >
+        </div>
+      </div>
+      <div class="mb-3">
+        <label for="sitemap-prefixes" class="form-label">Allowed URL prefixes</label>
+        <textarea
+          id="sitemap-prefixes"
+          name="sitemap_prefixes"
+          class="form-control font-monospace"
+          rows="3"
+          required
+        >{{ sitemap_prefixes }}</textarea>
+        <div class="form-text">One prefix per line. Only matching pages are downloaded.</div>
+      </div>
+      <button type="submit" class="btn btn-primary">Start bulk sitemap crawl</button>
+    </form>
+
+    {% if results is not none %}
+      <h2 class="h6">Results</h2>
+      {% if not results %}
+        {% if crawl_mode in ["sitemap", "stored"] and job and job.status == "completed" %}
+          <div class="alert alert-light border text-body-secondary">No indexing failures.</div>
+        {% else %}
+          <div class="alert alert-light border text-body-secondary">No URLs submitted.</div>
+        {% endif %}
+      {% else %}
+        <div class="table-responsive">
+          <table class="table table-sm align-middle">
+            <thead>
+              <tr>
+                <th scope="col">Status</th>
+                <th scope="col">URL</th>
+                <th scope="col">Detail</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in results %}
+                <tr>
+                  <td>
+                    {% if r.status == "created" %}
+                      <span class="badge text-bg-success">created</span>
+                    {% elif r.status == "updated" %}
+                      <span class="badge text-bg-primary">updated</span>
+                    {% elif r.status == "unchanged" %}
+                      <span class="badge text-bg-secondary">unchanged</span>
+                    {% elif r.status == "rejected" %}
+                      <span class="badge text-bg-warning">rejected</span>
+                    {% elif r.status == "skipped" %}
+                      <span class="badge text-bg-light border">skipped</span>
+                    {% else %}
+                      <span class="badge text-bg-danger">failed</span>
+                    {% endif %}
+                  </td>
+                  <td class="small">
+                    {% if r.title %}<div class="fw-semibold">{{ r.title }}</div>{% endif %}
+                    <a href="{{ r.url }}" target="_blank" rel="noopener">{{ r.url }}</a>
+                  </td>
+                  <td class="small text-body-secondary">{{ r.detail }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    {% endif %}
+{% endblock %}

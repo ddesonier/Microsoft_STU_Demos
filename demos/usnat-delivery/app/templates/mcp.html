@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}MCP — MS Docs Search{% endblock %}
+{% block content %}
+    <p class="text-body-secondary small mb-3">
+      Demonstrates Azure AI Search's <strong>built-in MCP server</strong>: this page
+      doesn't call <code>SearchClient</code> directly like the Search tab does. Instead
+      it acts as an MCP client, calling the <code>knowledge_base_retrieve</code> tool on
+      the knowledge base <code>{{ knowledge_base_name }}</code>'s own native MCP
+      endpoint over JSON-RPC.
+    </p>
+    <p class="text-body-secondary small mb-3">
+      Endpoint: <code class="small">{{ mcp_endpoint }}</code>
+    </p>
+
+    <form method="get" action="/mcp" class="row gy-2 gx-2 align-items-center mb-4">
+      <div class="col-12 col-md">
+        <input
+          type="text"
+          name="q"
+          value="{{ query }}"
+          class="form-control form-control-lg"
+          placeholder="Ask a question about Microsoft Learn docs..."
+          autofocus
+        >
+      </div>
+      <div class="col-12 col-md-auto">
+        <button type="submit" class="btn btn-primary btn-lg w-100">Retrieve via MCP</button>
+      </div>
+    </form>
+
+    {% if error %}
+      <div class="alert alert-danger" role="alert">
+        <strong>MCP call failed:</strong> {{ error }}
+      </div>
+    {% endif %}
+
+    {% if answer %}
+      <section class="card border-primary mb-4 shadow-sm" aria-labelledby="mcp-answer-title">
+        <div class="card-header fw-semibold" id="mcp-answer-title">Grounded answer</div>
+        <div class="card-body">
+          <div class="answer-text">{{ answer }}</div>
+        </div>
+      </section>
+    {% elif answer_error %}
+      <div class="alert alert-warning" role="alert">{{ answer_error }}</div>
+    {% endif %}
+
+    {% if results is not none %}
+      <div class="d-flex justify-content-between align-items-baseline mb-3">
+        <span class="text-body-secondary">
+          {{ results|length }} reference{{ "s" if results|length != 1 else "" }} for
+          <strong>&ldquo;{{ query }}&rdquo;</strong>
+        </span>
+        <span class="badge text-bg-light border">
+          knowledge_base_retrieve{% if elapsed_ms is not none %} · {{ "%.0f"|format(elapsed_ms) }} ms{% endif %}
+        </span>
+      </div>
+
+      {% if not results %}
+        <div class="alert alert-light border text-body-secondary">No matches found.</div>
+      {% endif %}
+
+      {% for r in results %}
+        <div class="card result-card mb-3 shadow-sm">
+          <div class="card-body">
+            <h2 class="card-title h6 mb-1">
+              {% if r.citation_index %}<span class="badge text-bg-primary me-1">[{{ r.citation_index }}]</span>{% endif %}
+              <a href="{{ r.url }}" target="_blank" rel="noopener">{{ r.title }}</a>
+            </h2>
+            <div class="result-url text-success-emphasis mb-2">{{ r.url }}</div>
+            {% if r.section_title %}
+              <div class="small fw-semibold text-body-secondary mb-2">{{ r.section_title }}</div>
+            {% endif %}
+            <p class="card-text snippet mb-2">{{ r.snippet }}</p>
+            {% if r.source %}
+              <span class="badge text-bg-light border">{{ r.source }}</span>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="alert alert-light border text-body-secondary">
+        Enter a query above to retrieve grounding data via the knowledge base's MCP endpoint.
+      </div>
+    {% endif %}
+{% endblock %}

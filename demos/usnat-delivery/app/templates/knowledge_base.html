@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Microsoft Learn Knowledge Search{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}">
+  <style>
+    body { min-height: 100vh; display: flex; flex-direction: column; }
+    main { flex: 1 0 auto; }
+    .result-card .card-title a { text-decoration: none; }
+    .result-card .card-title a:hover { text-decoration: underline; }
+    .result-url { font-size: 0.8rem; overflow-wrap: anywhere; }
+    .snippet { font-size: 0.95rem; white-space: pre-line; }
+    .answer-text { white-space: pre-wrap; line-height: 1.6; }
+    #theme-toggle { white-space: nowrap; }
+  </style>
+</head>
+<body>
+  <nav class="navbar bg-body-tertiary border-bottom sticky-top">
+    <div class="container">
+      <a class="navbar-brand fw-semibold" href="/">Microsoft Learn Knowledge Search</a>
+      <button id="theme-toggle" type="button" class="btn btn-sm btn-outline-secondary">Dark mode</button>
+    </div>
+  </nav>
+
+  <main class="container py-5">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="border-top py-3">
+    <div class="container text-body-secondary small">
+      Results are grounded through Azure AI Search Knowledge Base <code>{{ knowledge_base_name }}</code>.
+    </div>
+  </footer>
+
+  <script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
